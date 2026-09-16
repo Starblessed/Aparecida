@@ -34,7 +34,7 @@ def main():
         print("Image preprocessed!")
 
         print("Performing inference...")
-        outputs = engine.inference(inputs=inputs)
+        outputs = engine.encode(inputs=inputs)
 
         print("Inference done!")
 
