@@ -2,7 +2,6 @@
 from src.infra.vector.data_loader import Loader
 from src.infra.vector.manager import VectorDatabaseManager
 
-from src.core.engine import Engine
 
 from src.core.postprocessing import embedding_to_normalized_list
 """
@@ -13,6 +12,7 @@ from pathlib import Path
 
 from PIL import Image
 
+from aparecida.core.engine import Engine
 from aparecida.core.loader import load_image
 
 
@@ -30,6 +30,7 @@ def sample_n(data: list, n: int):
     return samples
 
 
+MODEL_NAME: str = "google/siglip-so400m-patch14-384"
 DB_NAME: str = "example_01"
 
 N_DB_SAMPLES: int = 4
@@ -62,4 +63,5 @@ if __name__ == "__main__":
     print(data)
 
     # 2 --------------- Load Model
+    engine: Engine = Engine(model_name=MODEL_NAME)
     # TODO: Model Loading Pipeline
