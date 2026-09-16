@@ -136,7 +136,7 @@ if __name__ == "__main__":
         matches = db_manager.vector_search(vector)
         indices[id]["matches"] = sorted(matches, key=lambda x: x["_distance"])
 
-    # 8 --------------- Classify correct matches
+    # 8 --------------- Classify correct matches # TODO: add better metrics for the scoring system such as precision, recall and F1-Score
     results: list[tuple[int, bool]] = []
     successes: int = 0
 
