@@ -7,6 +7,7 @@ from PIL import Image
 from aparecida.core.engine import Engine
 from aparecida.core.loader import load_image
 from aparecida.core.postprocessing import embedding_to_normalized_list
+from aparecida.core.scoring.scorer import precision, recall
 from aparecida.infra.vector.data_loader import LANCE_SCHEMA
 from aparecida.infra.vector.manager import VectorDatabaseManager
 from aparecida.utils.logger import get_logger
@@ -104,12 +105,12 @@ if __name__ == "__main__":
 
         outputs = engine.encode(inputs=inputs)
 
+        # 4 --------------- Postprocess Data
         vector = embedding_to_normalized_list(outputs)
 
         data[id]["vector"] = vector
         data[id].pop("path", None)
 
-    # 4 --------------- Postprocess Data
     postprocessed_data: list[dict] = [entry for entry in data.values()]
 
     # 5 --------------- Ingest data into Vector DB
@@ -133,12 +134,15 @@ if __name__ == "__main__":
 
         # 7 --------------- Search and grab matches
 
-        matches = db_manager.vector_search(vector)
+        matches = db_manager.vector_search(vector, max_matches=N_DB_SAMPLES)
         indices[id]["matches"] = sorted(matches, key=lambda x: x["_distance"])
 
     # 8 --------------- Classify correct matches # TODO: add better metrics for the scoring system such as precision, recall and F1-Score
     results: list[tuple[int, bool]] = []
     successes: int = 0
+
+    index_labels: list[int] = []
+    index_preds: list[tuple[int, float]] = []
 
     for id, index in indices.items():
         matches = index["matches"]
@@ -152,6 +156,10 @@ if __name__ == "__main__":
 
         results.append((int(id), found_match))
 
+        for m in matches:
+            index_labels.append(int(id))
+            index_preds.append((int(m["name"]), float(m["_distance"])))
+
     # 9 --------------- Output score
     for result in results:
         print(f"INDEX {result[0]}: MATCH {'SUCCEEDED' if result[1] else 'FAILED'}")
@@ -159,3 +167,26 @@ if __name__ == "__main__":
     print(
         f"\n--- SUMMARY:\n- {successes} SUCCESSES\n- {len(indices) - successes} FAILED\n------------"
     )
+
+    THRESHOLD: float = 0.5
+
+    prec, valid_entries = precision(index_labels, index_preds, threshold=THRESHOLD)
+
+    idxs = [int(i) for i in indices]
+    vs = []
+
+    for i in idxs:
+        matches = indices[str(i)]["matches"]
+        vs.append([(int(m["name"]), m["_distance"]) for m in matches])
+
+    rec, valid_entries = recall(
+        idxs,
+        vs,
+        threshold=THRESHOLD,
+    )
+
+    f1 = 2 * (prec * rec) / (prec + rec)
+
+    print(f"Precision for threshold={THRESHOLD}: {prec:.2f} (n={valid_entries})")
+    print(f"Recall for threshold={THRESHOLD}: {rec:.2f} (n={valid_entries})")
+    print(f"F1-Score for threshold={THRESHOLD}: {f1:.2f} (n={valid_entries})")

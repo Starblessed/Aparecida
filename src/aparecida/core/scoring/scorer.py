@@ -1,30 +1,38 @@
-from abc import ABC, abstractmethod
+def precision(
+    y_true: list[int], y_predicted: list[tuple[int, float]], threshold: float
+) -> tuple[float, int]:
+    tp, fp = (0, 0)
+    valid_entries: int = 0
+
+    for label, prediction in zip(y_true, y_predicted):
+        if prediction[1] > threshold:
+            continue
+        if label == prediction[0]:
+            tp += 1
+        else:
+            fp += 1
+        valid_entries += 1
+
+    return tp / (tp + fp) if (tp + fp) > 0 else 0.0, valid_entries
 
 
-class Scorer(ABC):
-    def __init__(self, threshold: float):
-        self.threshold: float = threshold
+def recall(
+    y_true: list[int], y_predicted: list[list[tuple[int, float]]], threshold: float
+) -> tuple[float, int]:
+    tp, fn = (0, 0)
 
-    @abstractmethod
-    def score(
-        self, y_true: list[float], y_predicted: list[tuple[float, float]]
-    ) -> tuple[float, int]: ...
+    for label, prediction in zip(y_true, y_predicted):
+        print(label, prediction)
+        predicted_labels = {
+            predicted_label
+            for predicted_label, distance in prediction
+            if distance <= threshold
+        }
+        print(predicted_labels)
 
+        if label in predicted_labels:
+            tp += 1
+        else:
+            fn += 1
 
-class PrecisionScorer(Scorer):
-    def score(
-        self, y_true: list[float], y_predicted: list[tuple[float, float]]
-    ) -> tuple[float, int]:
-        tp, fp = (0, 0)
-        valid_entries: int = 0
-
-        for label, prediction in zip(y_true, y_predicted):
-            if prediction[1] < self.threshold:
-                continue
-            if str(label) == str(prediction)[0]:
-                tp += 1
-            else:
-                fp += 1
-            valid_entries += 1
-
-        return tp / (tp + fp) if (tp + fp) > 0 else 0.0, valid_entries
+    return tp / (tp + fn) if (tp + fn) > 0 else 0.0, tp + fn
