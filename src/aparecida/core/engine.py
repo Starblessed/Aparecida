@@ -3,16 +3,10 @@ from secrets import token_hex
 
 from PIL import Image
 from torch import Tensor
-from transformers import AutoProcessor
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
-from aparecida.core.models import (
-    SUPPORTED_MODEL,
-    SUPPORTED_MODELS,
-    Model,
-    SigLip2Model,
-    SigLipModel,
-)
+from aparecida.core.models import SUPPORTED_MODEL, Model, get_model
+from aparecida.core.processor import Processor, get_processor
 from aparecida.utils.logger import get_logger
 
 LOGGER = get_logger("Engine")
@@ -20,38 +14,24 @@ LOGGER = get_logger("Engine")
 
 class Engine:
     def __init__(self, model_name: SUPPORTED_MODEL):
-        self.model_name: str = model_name
+        self.model_name: SUPPORTED_MODEL = model_name
         self.id: str = token_hex(3) + "-" + token_hex(3)
 
     def initialize(self):
         LOGGER.info(f"Initializing engine {self.id}...")
 
-        # TODO: Isolate and modularize preprocessors
-        self.processor = AutoProcessor.from_pretrained(self.model_name)
+        self.processor: Processor = get_processor(model_name=self.model_name)
+        self.model: Model = get_model(model_name=self.model_name)
 
-        self.model: Model = self.__get_model()
         LOGGER.info(f"Engine {self.id} ready.")
-
-    def __get_model(self):
-        if self.model_name not in SUPPORTED_MODELS:
-            raise TypeError(f'Unsupported model name: "{self.model_name}"')
-
-        model_family: str = self.model_name.split("/")[1].split("-")[0]
-
-        match model_family:
-            case "siglip":
-                return SigLipModel(self.model_name)
-            case "siglip2":
-                return SigLip2Model(self.model_name)
-            case _:
-                raise ValueError(f'Unsupported model family: "{model_family}"')
 
     def encode(self, inputs: Mapping[str, Tensor]) -> BaseModelOutputWithPooling:
         LOGGER.info(f"Encoding with engine {self.id}...")
-        outputs: BaseModelOutputWithPooling = self.model(**inputs)
+        outputs: BaseModelOutputWithPooling = self.model(data=inputs)
         LOGGER.info("Encoding done.")
 
         return outputs
 
     def preprocess_image(self, image: Image.Image):
-        return self.processor(images=image, return_tensors="pt")
+        LOGGER.info(f"Preprocessing with engine {self.id}...")
+        return self.processor(image=image)

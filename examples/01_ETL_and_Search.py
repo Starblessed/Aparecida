@@ -30,6 +30,9 @@ def sample_n_then_k(data: list, n: int, k: int):
     return samples_n, samples_k
 
 
+INPUT_PATH: Path = Path("input")
+OUTPUT_PATH: Path = Path("output")
+
 MODEL_NAME: str = "google/siglip-so400m-patch14-384"
 DB_NAME: str = "example_01"
 DB_PATH: str = str(Path("output") / DB_NAME)
@@ -38,10 +41,13 @@ TABLE_NAME: str = "persons"
 N_DB_SAMPLES: int = 2
 N_SEARCHES_PER_ID: int = 1  # Do not change
 
-INPUT_DATA_PATH: Path = Path("input") / "microsoft-digiface-1m-sample"
+INPUT_DATA_PATH: Path = INPUT_PATH / "microsoft-digiface-1m-sample"
+
 
 if __name__ == "__main__":
     logger = get_logger("Pipeline")
+
+    OUTPUT_PATH.mkdir(exist_ok=True)
 
     # 1 --------------- Load Data
 
@@ -99,7 +105,9 @@ if __name__ == "__main__":
 
     for i, (id, entry) in enumerate(data.items()):
         image = load_image(entry["path"])
-        inputs = engine.preprocess_image(image)
+        print(image)
+
+        inputs = engine.preprocess_image(image=image)
 
         logger.info(f"Encoding entry {entry['id']} ({i + 1} of {corpus_size})...")
 

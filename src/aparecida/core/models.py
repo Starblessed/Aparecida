@@ -24,8 +24,8 @@ class Model(ABC):
     @abstractmethod
     def inference(self, data) -> Any: ...
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return self.inference(*args, **kwargs)
+    def __call__(self, data) -> Any:
+        return self.inference(data=data)
 
 
 class SigLipModel(Model):
@@ -44,3 +44,18 @@ class SigLip2Model(Model):
 
     def inference(self, data: Mapping[str, Tensor]) -> BaseModelOutputWithPooling:
         return self._predictor(**data)
+
+
+def get_model(model_name: SUPPORTED_MODEL) -> Model:
+    if model_name not in SUPPORTED_MODELS:
+        raise TypeError(f'Unsupported model name: "{model_name}"')
+
+    model_family: str = model_name.split("/")[1].split("-")[0]
+
+    match model_family:
+        case "siglip":
+            return SigLipModel(model_name)
+        case "siglip2":
+            return SigLip2Model(model_name)
+        case _:
+            raise ValueError(f'Unsupported model family: "{model_family}"')
