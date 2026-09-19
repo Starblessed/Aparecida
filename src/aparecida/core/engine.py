@@ -1,16 +1,19 @@
 from collections.abc import Mapping
 from secrets import token_hex
-from typing import Literal
 
 from PIL import Image
 from torch import Tensor
-from transformers import AutoProcessor, Siglip2VisionModel, SiglipVisionModel
+from transformers import AutoProcessor
 from transformers.modeling_outputs import BaseModelOutputWithPooling
 
+from aparecida.core.models import (
+    SUPPORTED_MODEL,
+    SUPPORTED_MODELS,
+    Model,
+    SigLip2Model,
+    SigLipModel,
+)
 from aparecida.utils.logger import get_logger
-
-SUPPORTED_MODEL = Literal["google/siglip-so400m-patch14-384"]
-SUPPORTED_MODELS = ["google/siglip-so400m-patch14-384"]
 
 LOGGER = get_logger("Engine")
 
@@ -22,21 +25,24 @@ class Engine:
 
     def initialize(self):
         LOGGER.info(f"Initializing engine {self.id}...")
+
+        # TODO: Isolate and modularize preprocessors
         self.processor = AutoProcessor.from_pretrained(self.model_name)
-        self.model: SiglipVisionModel | Siglip2VisionModel = self.__get_model()
+
+        self.model: Model = self.__get_model()
         LOGGER.info(f"Engine {self.id} ready.")
 
     def __get_model(self):
         if self.model_name not in SUPPORTED_MODELS:
-            raise TypeError(f'Unsupported model: "{self.model_name}"')
+            raise TypeError(f'Unsupported model name: "{self.model_name}"')
 
         model_family: str = self.model_name.split("/")[1].split("-")[0]
 
         match model_family:
             case "siglip":
-                return SiglipVisionModel.from_pretrained(self.model_name)
+                return SigLipModel(self.model_name)
             case "siglip2":
-                return Siglip2VisionModel.from_pretrained(self.model_name)
+                return SigLip2Model(self.model_name)
             case _:
                 raise ValueError(f'Unsupported model family: "{model_family}"')
 
