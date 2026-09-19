@@ -9,3 +9,4 @@ __pycache__/
 
 # Developer Stuff
 .dev/
+examples/output/
